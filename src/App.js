@@ -142,51 +142,48 @@ function App() {
     setResizingIndex(null);
     setDraggingIndex(null);
     setRotateIndex(null);
-    document.body.style.cursor = "auto"; // Set cursor style back to default
+    document.body.style.cursor = "auto";
   };
 
   const handleMouseMove = (e) => {
     if (resizingIndex !== null) {
-      const updatedRectangles = rectangles.map((rect, index) => {
-        if (index === resizingIndex) {
-          if (rect.rotate !== undefined) {
-            // Rectangle is rotated
-            const mouseX = e.clientX;
-            const mouseY = e.clientY;
+      const newWidth = e.clientX - rectangles[resizingIndex].x;
+      const newHeight = e.clientY - rectangles[resizingIndex].y;
 
-            const dx = mouseX - (rect.x + rect.width / 2);
-            const dy = mouseY - (rect.y + rect.height / 2);
+      const videoElement = document.getElementById("video");
+      const videoRect = videoElement.getBoundingClientRect();
+      const maxWidth = videoRect.right - rectangles[resizingIndex].x;
+      const maxHeight = videoRect.bottom - rectangles[resizingIndex].y;
 
-            const rotation = (rect.rotate * Math.PI) / 180;
+      const constrainedWidth = Math.min(newWidth, maxWidth);
+      const constrainedHeight = Math.min(newHeight, maxHeight);
 
-            const newWidth =
-              (dx * Math.cos(rotation) + dy * Math.sin(rotation)) * 2;
-            const newHeight =
-              (-dx * Math.sin(rotation) + dy * Math.cos(rotation)) * 2;
-
-            return { ...rect, width: newWidth, height: newHeight };
-          } else {
-            // Rectangle is not rotated
-            const newWidth = e.clientX - rect.x;
-            const newHeight = e.clientY - rect.y;
-
-            return { ...rect, width: newWidth, height: newHeight };
-          }
-        }
-        return rect;
-      });
+      const updatedRectangles = rectangles.map((rect, index) =>
+        index === resizingIndex
+          ? { ...rect, width: constrainedWidth, height: constrainedHeight }
+          : rect
+      );
 
       setRectangles(updatedRectangles);
     } else if (draggingIndex !== null) {
-      const updatedRectangles = rectangles.map((rect, index) => {
-        if (index === draggingIndex) {
-          let newX, newY;
-          newX = e.clientX - dragOffset.x;
-          newY = e.clientY - dragOffset.y;
-          return { ...rect, x: newX, y: newY };
-        }
-        return rect;
-      });
+      const newX = e.clientX - dragOffset.x;
+      const newY = e.clientY - dragOffset.y;
+
+      const videoElement = document.getElementById("video");
+      const videoRect = videoElement.getBoundingClientRect();
+
+      const constrainedX = Math.max(videoRect.left, newX);
+      const constrainedY = Math.max(videoRect.top, newY);
+      const maxWidth = videoRect.right - rectangles[draggingIndex].width;
+      const maxHeight = videoRect.bottom - rectangles[draggingIndex].height;
+
+      const finalX = Math.min(constrainedX, maxWidth);
+      const finalY = Math.min(constrainedY, maxHeight);
+
+      const updatedRectangles = rectangles.map((rect, index) =>
+        index === draggingIndex ? { ...rect, x: finalX, y: finalY } : rect
+      );
+
       setRectangles(updatedRectangles);
     } else if (rotateIndex !== null) {
       const updatedRectangles = rectangles.map((rect, index) => {
@@ -320,6 +317,7 @@ function App() {
               fontSize: "30px",
               cursor: "se-resize",
               display: isDisabled(index) ? "none" : "flex",
+              overflow: "hidden",
             }}
             onMouseDown={(e) => handleMouseDown(e, index, "resize")}
           >
@@ -335,6 +333,7 @@ function App() {
               fontSize: "30px",
               cursor: "grab",
               display: isDisabled(index) ? "none" : "flex",
+              overflow: "hidden",
             }}
             onMouseDown={(e) => handleMouseDown(e, index, "rotate")}
           >
@@ -429,6 +428,7 @@ function App() {
         </Button>
       </Box>
       <video
+        id="video"
         muted
         playsInline
         preload="auto"
