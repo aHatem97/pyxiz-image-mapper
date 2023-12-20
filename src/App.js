@@ -318,7 +318,7 @@ function App() {
               transform: "translate(-50%, -50%) rotate(-45deg)",
               color: "white",
               fontSize: "30px",
-              cursor: "grab",
+              cursor: "se-resize",
               display: isDisabled(index) ? "none" : "flex",
             }}
             onMouseDown={(e) => handleMouseDown(e, index, "resize")}
@@ -369,43 +369,6 @@ function App() {
           >
             <EditNote />
           </IconButton>
-          <Dialog open={openEditDialog} onClose={handleCloseEditDialog}>
-            <DialogTitle sx={{ margin: "0 auto" }}>Edit URL</DialogTitle>
-            <IconButton
-              aria-label="close"
-              onClick={handleCloseEditDialog}
-              sx={{
-                position: "absolute",
-                right: "8px",
-                top: "8px",
-                transition: "0.5s all",
-                "&:hover": {
-                  transform: "scale(1.2)",
-                  color: "red",
-                },
-              }}
-            >
-              <Close />
-            </IconButton>
-            <DialogContent>
-              <TextField
-                label="URL"
-                required
-                fullWidth
-                defaultValue={savedRectangles[selectedIndex]?.url}
-                onChange={(event) => setEditUrl(event.target.value)}
-                sx={{ marginTop: "1em" }}
-              />
-            </DialogContent>
-            <DialogActions>
-              <Button
-                onClick={() => handleSaveUrl(selectedIndex)}
-                sx={{ margin: "0 auto" }}
-              >
-                Save URL
-              </Button>
-            </DialogActions>
-          </Dialog>
           <IconButton
             variant="contained"
             size="small"
@@ -483,17 +446,56 @@ function App() {
         <Rectangle key={index} rectangle={rectangle} index={index} />
       ))}
       {openEditDialog && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            bottom: 0,
-            left: 0,
-            right: 0,
-            zIndex: 1,
-          }}
-          onClick={handleCloseEditDialog}
-        ></div>
+        <>
+          <Box
+            style={{
+              position: "fixed",
+              top: 0,
+              bottom: 0,
+              left: 0,
+              right: 0,
+              zIndex: 1,
+            }}
+            onClick={handleCloseEditDialog}
+          ></Box>
+          <Dialog open={openEditDialog} onClose={handleCloseEditDialog}>
+            <DialogTitle sx={{ margin: "0 auto" }}>Edit URL</DialogTitle>
+            <IconButton
+              aria-label="close"
+              onClick={handleCloseEditDialog}
+              sx={{
+                position: "absolute",
+                right: "8px",
+                top: "8px",
+                transition: "0.5s all",
+                "&:hover": {
+                  transform: "scale(1.2)",
+                  color: "red",
+                },
+              }}
+            >
+              <Close />
+            </IconButton>
+            <DialogContent>
+              <TextField
+                label="URL"
+                required
+                fullWidth
+                defaultValue={savedRectangles[selectedIndex]?.url}
+                onChange={(event) => setEditUrl(event.target.value)}
+                sx={{ marginTop: "1em" }}
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button
+                onClick={() => handleSaveUrl(selectedIndex)}
+                sx={{ margin: "0 auto" }}
+              >
+                Save URL
+              </Button>
+            </DialogActions>
+          </Dialog>
+        </>
       )}
     </Box>
   );
