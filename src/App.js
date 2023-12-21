@@ -9,7 +9,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   OpenWith,
   Height,
@@ -59,14 +59,12 @@ function App() {
     if (rectangleType === "dynamic") {
       rectangle.time = currentTime;
       rectangle.duration = parseInt(duration);
+      rectangle.type = rectangleType;
     }
+    rectangle.url = editUrl;
     setRectangles([...rectangles, rectangle]);
     setRectangleType("");
     handleCloseDialog();
-  };
-
-  const handleTimeUpdate = (e) => {
-    setCurrentTime(e.target.currentTime);
   };
 
   const handleEdit = (index) => {
@@ -232,9 +230,39 @@ function App() {
   }, [resizingIndex, draggingIndex, rotateIndex]);
 
   const Rectangle = ({ rectangle, index }) => {
+    const videoRef = useRef(null);
+    const [isVisible, setIsVisible] = useState(true);
     const rotationStyle = rectangle.rotate
       ? `rotate(${rectangle.rotate}deg)`
       : "";
+
+    const getCurrentTime = () => {
+      if (videoRef.current) {
+        setCurrentTime(videoRef.current);
+        return videoRef.current.currentTime;
+      }
+      return 0;
+    };
+
+    useEffect(() => {
+      getCurrentTime();
+      if (rectangle.type !== "dynamic") {
+        setIsVisible(true); // Show static rectangles by default
+        return;
+      }
+
+      const timer = setInterval(() => {
+        const endTime = rectangle.time + rectangle.duration;
+
+        if (currentTime >= rectangle.time && currentTime <= endTime) {
+          setIsVisible(true);
+        } else {
+          setIsVisible(false);
+        }
+      }, 100);
+
+      return () => clearInterval(timer);
+    }, [rectangle]);
 
     const handleSave = (index) => {
       const updatedRectangles = rectangles.map((rect, i) => {
@@ -289,6 +317,7 @@ function App() {
           width: rectangle.width,
           height: rectangle.height,
           transform: rotationStyle,
+          display: isVisible ? "block" : "none",
         }}
         onMouseDown={(e) => handleMouseDown(e, index)}
       >
@@ -473,7 +502,6 @@ function App() {
           }}
           src="videos/video1.m4v"
           onClick={handleClick}
-          onTimeUpdate={handleTimeUpdate}
         ></video>
       </Box>
 
@@ -492,7 +520,7 @@ function App() {
               zIndex: 1,
             }}
             onClick={handleCloseDialog}
-          ></Box>
+          />
           <Dialog open={openEditDialog} onClose={handleCloseDialog}>
             <DialogTitle sx={{ margin: "0 auto" }}>Edit URL</DialogTitle>
             <IconButton
@@ -511,15 +539,25 @@ function App() {
             >
               <Close />
             </IconButton>
-            <DialogContent>
+            <DialogContent
+              sx={{ display: "flex", flexDirection: "column", gap: "2em" }}
+            >
               <TextField
                 label="URL"
-                required
                 fullWidth
                 defaultValue={savedRectangles[selectedIndex]?.url}
                 onChange={(event) => setEditUrl(event.target.value)}
                 sx={{ marginTop: "1em" }}
               />
+              {savedRectangles[selectedIndex]?.type === "dynamic" && (
+                <TextField
+                  label="Duration"
+                  type="number"
+                  fullWidth
+                  defaultValue={savedRectangles[selectedIndex]?.duration}
+                  onChange={(event) => setDuration(event.target.value)}
+                />
+              )}
             </DialogContent>
             <DialogActions>
               <Button
@@ -549,15 +587,20 @@ function App() {
             <DialogTitle
               sx={{ margin: "0 auto", fontWeight: "700", fontSize: "28px" }}
             >
-              Select Rectangle Type
+              {rectangleType === "dynamic"
+                ? "Create Your Dynamic Rectangle"
+                : rectangleType === "static"
+                ? "Create Your Static Rectangle"
+                : "Select Rectangle Type"}
             </DialogTitle>
             <DialogContent
               sx={{
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                gap: "2em",
+                gap: "1em",
                 p: "0 2em",
+                flexDirection: rectangleType ? "column" : "row",
               }}
             >
               {rectangleType !== "static" && (
@@ -573,6 +616,7 @@ function App() {
                 >
                   <Button
                     variant="contained"
+                    disabled={rectangleType === "dynamic"}
                     onClick={() => setRectangleType("dynamic")}
                   >
                     Dynamic
@@ -587,15 +631,6 @@ function App() {
                     Dynamic rectangles are given a duration in which they will
                     be available since creation time.
                   </Typography>
-                  {rectangleType === "dynamic" && (
-                    <TextField
-                      label="Duration"
-                      type="number"
-                      size="small"
-                      placeholder="0"
-                      onChange={(e) => setDuration(e.target.value)}
-                    />
-                  )}
                 </Box>
               )}
 
@@ -612,6 +647,7 @@ function App() {
                 >
                   <Button
                     variant="contained"
+                    disabled={rectangleType === "static"}
                     onClick={() => setRectangleType("static")}
                   >
                     Static
@@ -626,6 +662,23 @@ function App() {
                     Static rectangles are available throughout the whole video.
                   </Typography>
                 </Box>
+              )}
+              {rectangleType && (
+                <TextField
+                  label="URL"
+                  size="small"
+                  placeholder="Enter URL here..."
+                  onChange={(event) => setEditUrl(event.target.value)}
+                />
+              )}
+              {rectangleType === "dynamic" && (
+                <TextField
+                  label="Duration"
+                  type="number"
+                  size="small"
+                  placeholder="0"
+                  onChange={(e) => setDuration(e.target.value)}
+                />
               )}
             </DialogContent>
             <DialogActions>
