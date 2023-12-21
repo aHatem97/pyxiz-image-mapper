@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  Typography,
 } from "@mui/material";
 import React, { useState, useEffect } from "react";
 import {
@@ -33,18 +34,39 @@ function App() {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [editUrl, setEditUrl] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [dynamicRectangles, setDynamicRectangles] = useState([]);
+  const [staticRectangles, setStaticRectangles] = useState([]);
+  const [rectangleType, setRectangleType] = useState(null);
+  const [openTypeDialog, setOpenTypeDialog] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [newRectangle, setNewRectangle] = useState(null);
 
   const handleClick = (e) => {
     if (resizingIndex === null && draggingIndex === null) {
-      const newRectangle = {
+      setOpenTypeDialog(true);
+      setNewRectangle({
         x: e.clientX - 100,
         y: e.clientY - 50,
         width: 200,
         height: 100,
-      };
-
-      setRectangles([...rectangles, newRectangle]);
+      });
     }
+  };
+
+  const handleRectangleType = () => {
+    const rectangle = { ...newRectangle };
+    if (rectangleType === "dynamic") {
+      rectangle.time = currentTime;
+      rectangle.duration = parseInt(duration);
+    }
+    setRectangles([...rectangles, rectangle]);
+    setRectangleType("");
+    handleCloseDialog();
+  };
+
+  const handleTimeUpdate = (e) => {
+    setCurrentTime(e.target.currentTime);
   };
 
   const handleEdit = (index) => {
@@ -52,8 +74,10 @@ function App() {
     setOpenEditDialog(true);
   };
 
-  const handleCloseEditDialog = () => {
+  const handleCloseDialog = () => {
+    setRectangleType("");
     setOpenEditDialog(false);
+    setOpenTypeDialog(false);
   };
 
   const handleSaveUrl = (index) => {
@@ -100,6 +124,7 @@ function App() {
     const savedRectanglesJSON = localStorage.getItem("savedRectangles");
     const savedRectangles = JSON.parse(savedRectanglesJSON);
 
+    console.log("savedRectangles: ", savedRectangles);
     const disabledRectanglesJSON = localStorage.getItem("disabledRectangles");
     const disabledRectangles = JSON.parse(disabledRectanglesJSON);
 
@@ -221,6 +246,13 @@ function App() {
 
           setSavedRectangles(updatedSavedRectangles);
           setDisabledRectangles([...disabledRectangles, index]);
+
+          if (rectangleType === "dynamic") {
+            setDynamicRectangles([...dynamicRectangles, rect]);
+          } else if (rectangleType === "static") {
+            setStaticRectangles([...staticRectangles, rect]);
+          }
+
           localStorage.setItem(
             "savedRectangles",
             JSON.stringify(updatedSavedRectangles)
@@ -441,6 +473,7 @@ function App() {
           }}
           src="videos/video1.m4v"
           onClick={handleClick}
+          onTimeUpdate={handleTimeUpdate}
         ></video>
       </Box>
 
@@ -458,13 +491,13 @@ function App() {
               right: 0,
               zIndex: 1,
             }}
-            onClick={handleCloseEditDialog}
+            onClick={handleCloseDialog}
           ></Box>
-          <Dialog open={openEditDialog} onClose={handleCloseEditDialog}>
+          <Dialog open={openEditDialog} onClose={handleCloseDialog}>
             <DialogTitle sx={{ margin: "0 auto" }}>Edit URL</DialogTitle>
             <IconButton
               aria-label="close"
-              onClick={handleCloseEditDialog}
+              onClick={handleCloseDialog}
               sx={{
                 position: "absolute",
                 right: "8px",
@@ -495,6 +528,111 @@ function App() {
               >
                 Save URL
               </Button>
+            </DialogActions>
+          </Dialog>
+        </>
+      )}
+      {openTypeDialog && (
+        <>
+          <Box
+            style={{
+              position: "fixed",
+              top: 0,
+              bottom: 0,
+              left: 0,
+              right: 0,
+              zIndex: 1,
+            }}
+            onClick={handleCloseDialog}
+          ></Box>
+          <Dialog open={openTypeDialog} onClose={handleCloseDialog}>
+            <DialogTitle
+              sx={{ margin: "0 auto", fontWeight: "700", fontSize: "28px" }}
+            >
+              Select Rectangle Type
+            </DialogTitle>
+            <DialogContent
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "2em",
+                p: "0 2em",
+              }}
+            >
+              {rectangleType !== "static" && (
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "1em",
+                    flex: 1,
+                    marginBottom: "auto",
+                    maxWidth: "300px",
+                  }}
+                >
+                  <Button
+                    variant="contained"
+                    onClick={() => setRectangleType("dynamic")}
+                  >
+                    Dynamic
+                  </Button>
+                  <Typography
+                    sx={{
+                      fontSize: "12px",
+                      color: "#A4A4A4",
+                      textAlign: "center",
+                    }}
+                  >
+                    Dynamic rectangles are given a duration in which they will
+                    be available since creation time.
+                  </Typography>
+                  {rectangleType === "dynamic" && (
+                    <TextField
+                      label="Duration"
+                      type="number"
+                      size="small"
+                      placeholder="0"
+                      onChange={(e) => setDuration(e.target.value)}
+                    />
+                  )}
+                </Box>
+              )}
+
+              {rectangleType !== "dynamic" && (
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "1em",
+                    flex: 1,
+                    marginBottom: "auto",
+                    maxWidth: "300px",
+                  }}
+                >
+                  <Button
+                    variant="contained"
+                    onClick={() => setRectangleType("static")}
+                  >
+                    Static
+                  </Button>
+                  <Typography
+                    sx={{
+                      fontSize: "12px",
+                      color: "#A4A4A4",
+                      textAlign: "center",
+                    }}
+                  >
+                    Static rectangles are available throughout the whole video.
+                  </Typography>
+                </Box>
+              )}
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleCloseDialog}>Cancel</Button>
+              {rectangleType && (
+                <Button onClick={handleRectangleType}>Create</Button>
+              )}
             </DialogActions>
           </Dialog>
         </>
