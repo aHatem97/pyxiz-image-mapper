@@ -30,7 +30,6 @@ function App() {
   const [rotateOffset, setRotateOffset] = useState({ x: 0, y: 0 });
   const [savedRectangles, setSavedRectangles] = useState([]);
   const [disabledRectangles, setDisabledRectangles] = useState([]);
-  const [editMode, setEditMode] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [editUrl, setEditUrl] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(null);
@@ -76,7 +75,6 @@ function App() {
   const handleEnterViewMode = () => {
     const updatedDisabledRectangles = rectangles.map((_, index) => index);
     setDisabledRectangles(updatedDisabledRectangles);
-    setEditMode(false);
 
     // Save the disabled rectangles state in local storage
     localStorage.setItem(
@@ -90,7 +88,6 @@ function App() {
       (index) => !rectangles[index]
     );
     setDisabledRectangles(updatedDisabledRectangles);
-    setEditMode(true);
 
     // Save the enabled rectangles state in local storage
     localStorage.setItem(
@@ -318,6 +315,7 @@ function App() {
               cursor: "se-resize",
               display: isDisabled(index) ? "none" : "flex",
               overflow: "hidden",
+              p: 0,
             }}
             onMouseDown={(e) => handleMouseDown(e, index, "resize")}
           >
@@ -334,6 +332,7 @@ function App() {
               cursor: "grab",
               display: isDisabled(index) ? "none" : "flex",
               overflow: "hidden",
+              p: 0,
             }}
             onMouseDown={(e) => handleMouseDown(e, index, "rotate")}
           >
@@ -427,20 +426,23 @@ function App() {
           Enter Edit Mode <Construction />
         </Button>
       </Box>
-      <video
-        id="video"
-        muted
-        playsInline
-        preload="auto"
-        style={{
-          maxHeight: "90vh",
-          zIndex: 0,
-          width: "100%",
-          objectFit: "cover",
-        }}
-        src="videos/airport.mp4"
-        onClick={handleClick}
-      ></video>
+      <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
+        <video
+          id="video"
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          style={{
+            maxHeight: "90vh",
+            zIndex: 0,
+            maxWidth: "100%",
+          }}
+          src="videos/video1.m4v"
+          onClick={handleClick}
+        ></video>
+      </Box>
 
       {rectangles.map((rectangle, index) => (
         <Rectangle key={index} rectangle={rectangle} index={index} />
