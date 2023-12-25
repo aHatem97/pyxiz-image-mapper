@@ -10,17 +10,9 @@ import {
   Typography,
 } from "@mui/material";
 import React, { useState, useEffect, useRef } from "react";
-import {
-  OpenWith,
-  Height,
-  RotateLeft,
-  Save,
-  Delete,
-  EditNote,
-  Close,
-  Preview,
-  Construction,
-} from "@mui/icons-material";
+import { Close, Preview, Construction } from "@mui/icons-material";
+
+import CreateRectangle from "./CreateRectangle";
 
 function App() {
   const [rectangles, setRectangles] = useState([]);
@@ -35,12 +27,14 @@ function App() {
   const [editUrl, setEditUrl] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [currentTime, setCurrentTime] = useState(0);
-  const [dynamicRectangles, setDynamicRectangles] = useState([]);
-  const [staticRectangles, setStaticRectangles] = useState([]);
   const [rectangleType, setRectangleType] = useState(null);
   const [openTypeDialog, setOpenTypeDialog] = useState(false);
   const [duration, setDuration] = useState(0);
   const [newRectangle, setNewRectangle] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
+
+  const videoRef = useRef(null);
 
   const handleClick = (e) => {
     if (resizingIndex === null && draggingIndex === null) {
@@ -59,8 +53,8 @@ function App() {
     if (rectangleType === "dynamic") {
       rectangle.time = currentTime;
       rectangle.duration = parseInt(duration);
-      rectangle.type = rectangleType;
     }
+    rectangle.type = rectangleType;
     rectangle.url = editUrl;
     setRectangles([...rectangles, rectangle]);
     setRectangleType("");
@@ -76,12 +70,14 @@ function App() {
     setRectangleType("");
     setOpenEditDialog(false);
     setOpenTypeDialog(false);
+    setOpenConfirmDialog(false);
   };
 
   const handleSaveUrl = (index) => {
     const updatedRectangles = rectangles.map((rect, i) => {
       if (i === index) {
         rect.url = editUrl;
+        rect.duration = parseInt(duration);
       }
 
       return rect;
@@ -95,7 +91,14 @@ function App() {
   };
 
   const handleEnterViewMode = () => {
+    setIsEditMode(false);
     const updatedDisabledRectangles = rectangles.map((_, index) => index);
+
+    // Play the video
+    if (videoRef && videoRef.current) {
+      videoRef.current.play();
+    }
+
     setDisabledRectangles(updatedDisabledRectangles);
 
     // Save the disabled rectangles state in local storage
@@ -106,9 +109,16 @@ function App() {
   };
 
   const handleEnterEditMode = () => {
+    setIsEditMode(true);
     const updatedDisabledRectangles = disabledRectangles.filter(
       (index) => !rectangles[index]
     );
+
+    // Pause the video
+    if (videoRef && videoRef.current) {
+      videoRef.current.pause();
+    }
+
     setDisabledRectangles(updatedDisabledRectangles);
 
     // Save the enabled rectangles state in local storage
@@ -117,6 +127,19 @@ function App() {
       JSON.stringify(updatedDisabledRectangles)
     );
   };
+
+  useEffect(() => {
+    const handleTimeUpdate = () => {
+      console.log("handleTimeUpdate: ", videoRef.current.currentTime);
+      setCurrentTime(videoRef.current.currentTime);
+    };
+
+    videoRef.current.addEventListener("timeupdate", handleTimeUpdate);
+
+    return () => {
+      videoRef.current.removeEventListener("timeupdate", handleTimeUpdate);
+    };
+  }, []);
 
   useEffect(() => {
     const savedRectanglesJSON = localStorage.getItem("savedRectangles");
@@ -166,6 +189,9 @@ function App() {
   };
 
   const handleMouseMove = (e) => {
+    const minimumWidth = 80;
+    const minimumHeight = 40;
+
     if (resizingIndex !== null) {
       const newWidth = e.clientX - rectangles[resizingIndex].x;
       const newHeight = e.clientY - rectangles[resizingIndex].y;
@@ -175,12 +201,14 @@ function App() {
       const maxWidth = videoRect.right - rectangles[resizingIndex].x;
       const maxHeight = videoRect.bottom - rectangles[resizingIndex].y;
 
-      const constrainedWidth = Math.min(newWidth, maxWidth);
-      const constrainedHeight = Math.min(newHeight, maxHeight);
+      const constrainedWidth = Math.max(newWidth, minimumWidth);
+      const constrainedHeight = Math.max(newHeight, minimumHeight);
+      const finalWidth = Math.min(constrainedWidth, maxWidth);
+      const finalHeight = Math.min(constrainedHeight, maxHeight);
 
       const updatedRectangles = rectangles.map((rect, index) =>
         index === resizingIndex
-          ? { ...rect, width: constrainedWidth, height: constrainedHeight }
+          ? { ...rect, width: finalWidth, height: finalHeight }
           : rect
       );
 
@@ -229,246 +257,12 @@ function App() {
     };
   }, [resizingIndex, draggingIndex, rotateIndex]);
 
-  const Rectangle = ({ rectangle, index }) => {
-    const videoRef = useRef(null);
-    const [isVisible, setIsVisible] = useState(true);
-    const rotationStyle = rectangle.rotate
-      ? `rotate(${rectangle.rotate}deg)`
-      : "";
-
-    const getCurrentTime = () => {
-      if (videoRef.current) {
-        setCurrentTime(videoRef.current);
-        return videoRef.current.currentTime;
-      }
-      return 0;
-    };
-
-    useEffect(() => {
-      getCurrentTime();
-      if (rectangle.type !== "dynamic") {
-        setIsVisible(true); // Show static rectangles by default
-        return;
-      }
-
-      const timer = setInterval(() => {
-        const endTime = rectangle.time + rectangle.duration;
-
-        if (currentTime >= rectangle.time && currentTime <= endTime) {
-          setIsVisible(true);
-        } else {
-          setIsVisible(false);
-        }
-      }, 100);
-
-      return () => clearInterval(timer);
-    }, [rectangle]);
-
-    const handleSave = (index) => {
-      const updatedRectangles = rectangles.map((rect, i) => {
-        if (i === index) {
-          const updatedSavedRectangles = { ...savedRectangles };
-
-          // Preserve the index of the rectangle in the savedRectangles object
-          updatedSavedRectangles[index] = rect;
-
-          setSavedRectangles(updatedSavedRectangles);
-          setDisabledRectangles([...disabledRectangles, index]);
-
-          if (rectangleType === "dynamic") {
-            setDynamicRectangles([...dynamicRectangles, rect]);
-          } else if (rectangleType === "static") {
-            setStaticRectangles([...staticRectangles, rect]);
-          }
-
-          localStorage.setItem(
-            "savedRectangles",
-            JSON.stringify(updatedSavedRectangles)
-          );
-
-          // Save the disabledRectangles state in local storage
-          localStorage.setItem(
-            "disabledRectangles",
-            JSON.stringify([...disabledRectangles, index])
-          );
-        }
-        return rect;
-      });
-
-      setRectangles(updatedRectangles);
-    };
-
-    const handleDelete = (index) => {
-      const updatedRectangles = rectangles.filter((_, i) => i !== index);
-      setRectangles(updatedRectangles);
-      setSavedRectangles(updatedRectangles);
-      localStorage.setItem(
-        "savedRectangles",
-        JSON.stringify(updatedRectangles)
-      );
-    };
-
-    return (
-      <Box
-        sx={{
-          position: "absolute",
-          left: rectangle.x,
-          top: rectangle.y,
-          width: rectangle.width,
-          height: rectangle.height,
-          transform: rotationStyle,
-          display: isVisible ? "block" : "none",
-        }}
-        onMouseDown={(e) => handleMouseDown(e, index)}
-      >
-        <Box
-          sx={{
-            position: "absolute",
-            width: "100%",
-            height: "100%",
-            border: isDisabled(index) ? "none" : "2px solid red",
-            cursor: isDisabled(index) ? "pointer" : "auto",
-            transition: "0.5s all",
-            "&:hover": {
-              backgroundColor: isDisabled(index) ? "red" : "transparent",
-            },
-          }}
-          onClick={() =>
-            isDisabled(index)
-              ? window.open(savedRectangles[index]?.url, "_blank")
-              : ""
-          }
-        >
-          <Box
-            sx={{
-              position: "absolute",
-              left: "2px",
-              top: "2px",
-              width: rectangle.width - 4,
-              height: rectangle.height - 4,
-              background: "transparent",
-            }}
-          >
-            <IconButton
-              sx={{
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                color: "white",
-                fontSize: "30px",
-                cursor: "move",
-                display: isDisabled(index) ? "none" : "flex",
-              }}
-              onMouseDown={(e) => handleMouseDown(e, index, "reposition")}
-            >
-              <OpenWith />
-            </IconButton>
-          </Box>
-          <IconButton
-            sx={{
-              position: "absolute",
-              top: "100%",
-              left: "100%",
-              transform: "translate(-50%, -50%) rotate(-45deg)",
-              color: "white",
-              fontSize: "30px",
-              cursor: "se-resize",
-              display: isDisabled(index) ? "none" : "flex",
-              overflow: "hidden",
-              p: 0,
-            }}
-            onMouseDown={(e) => handleMouseDown(e, index, "resize")}
-          >
-            <Height />
-          </IconButton>
-          <IconButton
-            sx={{
-              position: "absolute",
-              top: "50%",
-              left: "100%",
-              transform: "translate(-50%, -50%)",
-              color: "white",
-              fontSize: "30px",
-              cursor: "grab",
-              display: isDisabled(index) ? "none" : "flex",
-              overflow: "hidden",
-              p: 0,
-            }}
-            onMouseDown={(e) => handleMouseDown(e, index, "rotate")}
-          >
-            <RotateLeft />
-          </IconButton>
-        </Box>
-        <Box
-          sx={{
-            position: "absolute",
-            bottom: "-45px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            display: "flex",
-            gap: "0.5em",
-          }}
-        >
-          <IconButton
-            sx={{
-              width: "35px",
-              height: "35px",
-              color: "white",
-              fontSize: "16px",
-              backgroundColor: "primary.main",
-              transition: "0.5s all",
-              "&:hover": {
-                backgroundColor: "white",
-                color: "primary.main",
-              },
-              display: isDisabled(index) ? "none" : "flex",
-            }}
-            onClick={() => handleEdit(index)}
-          >
-            <EditNote />
-          </IconButton>
-          <IconButton
-            variant="contained"
-            size="small"
-            sx={{
-              width: "35px",
-              height: "35px",
-              color: "white",
-              fontSize: "16px",
-              backgroundColor: "primary.main",
-              transition: "0.5s all",
-              "&:hover": {
-                backgroundColor: "white",
-                color: "success.main",
-              },
-              display: isDisabled(index) ? "none" : "flex",
-            }}
-            onClick={() => handleSave(index)}
-          >
-            <Save />
-          </IconButton>
-          <IconButton
-            sx={{
-              width: "35px",
-              height: "35px",
-              color: "white",
-              fontSize: "30px",
-              backgroundColor: "error.main",
-              transition: "0.5s all",
-              "&:hover": {
-                backgroundColor: "white",
-                color: "error.main",
-              },
-              display: isDisabled(index) ? "none" : "flex",
-            }}
-            onClick={() => handleDelete(index)}
-          >
-            <Delete />
-          </IconButton>
-        </Box>
-      </Box>
-    );
+  const handleDelete = (index) => {
+    const updatedRectangles = rectangles.filter((_, i) => i !== index);
+    setRectangles(updatedRectangles);
+    setSavedRectangles(updatedRectangles);
+    localStorage.setItem("savedRectangles", JSON.stringify(updatedRectangles));
+    setOpenConfirmDialog(false);
   };
 
   return (
@@ -481,14 +275,15 @@ function App() {
         }}
       >
         <Button onClick={handleEnterViewMode}>
-          Enter View Mode <Preview />
+          View Mode <Preview />
         </Button>
         <Button onClick={handleEnterEditMode}>
-          Enter Edit Mode <Construction />
+          Edit Mode <Construction />
         </Button>
       </Box>
       <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
         <video
+          ref={videoRef}
           id="video"
           autoPlay
           loop
@@ -502,11 +297,29 @@ function App() {
           }}
           src="videos/video1.m4v"
           onClick={handleClick}
-        ></video>
+        />
       </Box>
 
       {rectangles.map((rectangle, index) => (
-        <Rectangle key={index} rectangle={rectangle} index={index} />
+        <CreateRectangle
+          key={index}
+          rectangle={rectangle}
+          index={index}
+          currentTime={currentTime}
+          rectangles={rectangles}
+          setRectangles={setRectangles}
+          savedRectangles={savedRectangles}
+          setSavedRectangles={setSavedRectangles}
+          disabledRectangles={disabledRectangles}
+          setDisabledRectangles={setDisabledRectangles}
+          rectangleType={rectangleType}
+          handleMouseDown={handleMouseDown}
+          isDisabled={isDisabled}
+          handleEdit={handleEdit}
+          isEditMode={isEditMode}
+          setOpenConfirmDialog={setOpenConfirmDialog}
+          setSelectedIndex={setSelectedIndex}
+        />
       ))}
       {openEditDialog && (
         <>
@@ -522,7 +335,7 @@ function App() {
             onClick={handleCloseDialog}
           />
           <Dialog open={openEditDialog} onClose={handleCloseDialog}>
-            <DialogTitle sx={{ margin: "0 auto" }}>Edit URL</DialogTitle>
+            <DialogTitle sx={{ margin: "0 auto" }}>Edit Rectangle</DialogTitle>
             <IconButton
               aria-label="close"
               onClick={handleCloseDialog}
@@ -545,16 +358,18 @@ function App() {
               <TextField
                 label="URL"
                 fullWidth
-                defaultValue={savedRectangles[selectedIndex]?.url}
+                size="small"
+                defaultValue={rectangles[selectedIndex]?.url}
                 onChange={(event) => setEditUrl(event.target.value)}
                 sx={{ marginTop: "1em" }}
               />
-              {savedRectangles[selectedIndex]?.type === "dynamic" && (
+              {rectangles[selectedIndex]?.type === "dynamic" && (
                 <TextField
                   label="Duration"
                   type="number"
                   fullWidth
-                  defaultValue={savedRectangles[selectedIndex]?.duration}
+                  size="small"
+                  defaultValue={rectangles[selectedIndex]?.duration}
                   onChange={(event) => setDuration(event.target.value)}
                 />
               )}
@@ -563,8 +378,9 @@ function App() {
               <Button
                 onClick={() => handleSaveUrl(selectedIndex)}
                 sx={{ margin: "0 auto" }}
+                variant="contained"
               >
-                Save URL
+                Save
               </Button>
             </DialogActions>
           </Dialog>
@@ -582,10 +398,31 @@ function App() {
               zIndex: 1,
             }}
             onClick={handleCloseDialog}
-          ></Box>
+          />
           <Dialog open={openTypeDialog} onClose={handleCloseDialog}>
+            <IconButton
+              aria-label="close"
+              onClick={handleCloseDialog}
+              sx={{
+                position: "absolute",
+                right: "8px",
+                top: "8px",
+                transition: "0.5s all",
+                "&:hover": {
+                  transform: "scale(1.2)",
+                  color: "red",
+                },
+              }}
+            >
+              <Close />
+            </IconButton>
             <DialogTitle
-              sx={{ margin: "0 auto", fontWeight: "700", fontSize: "28px" }}
+              sx={{
+                margin: "0 auto",
+                fontWeight: "700",
+                fontSize: "28px",
+                padding: "1.5em 1.5em 0 1.5em",
+              }}
             >
               {rectangleType === "dynamic"
                 ? "Create Your Dynamic Rectangle"
@@ -681,14 +518,78 @@ function App() {
                 />
               )}
             </DialogContent>
-            <DialogActions>
-              <Button onClick={handleCloseDialog}>Cancel</Button>
+            <DialogActions
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: "1em",
+                marginTop: "1em",
+              }}
+            >
               {rectangleType && (
-                <Button onClick={handleRectangleType}>Create</Button>
+                <>
+                  <Button
+                    variant="contained"
+                    color="error"
+                    onClick={() => setRectangleType("")}
+                  >
+                    Back
+                  </Button>
+
+                  <Button variant="contained" onClick={handleRectangleType}>
+                    Create
+                  </Button>
+                </>
               )}
             </DialogActions>
           </Dialog>
         </>
+      )}
+      {openConfirmDialog && (
+        <Dialog open={openConfirmDialog} onClose={handleCloseDialog}>
+          <DialogTitle sx={{ margin: "0 auto" }}>Delete Rectangle</DialogTitle>
+          <IconButton
+            aria-label="close"
+            onClick={handleCloseDialog}
+            sx={{
+              position: "absolute",
+              right: "8px",
+              top: "8px",
+              transition: "0.5s all",
+              "&:hover": {
+                transform: "scale(1.2)",
+                color: "red",
+              },
+            }}
+          >
+            <Close />
+          </IconButton>
+          <DialogContent>
+            <Typography variant="h5">
+              Are you sure you want to delete this rectangle?
+            </Typography>
+          </DialogContent>
+          <DialogActions
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "1em",
+            }}
+          >
+            <Button
+              onClick={() => handleDelete(selectedIndex)}
+              variant="contained"
+              color="error"
+            >
+              Yes
+            </Button>
+            <Button onClick={() => handleCloseDialog()} variant="contained">
+              No
+            </Button>
+          </DialogActions>
+        </Dialog>
       )}
     </Box>
   );
