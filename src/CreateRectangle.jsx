@@ -36,7 +36,7 @@ const CreateRectangle = ({
 
   useEffect(() => {
     if (rectangle.type !== "dynamic") {
-      setIsVisible(true); // Show static rectangles by default
+      setIsVisible(true);
       return;
     }
 
@@ -51,7 +51,6 @@ const CreateRectangle = ({
       if (i === index) {
         const updatedSavedRectangles = { ...savedRectangles };
 
-        // Preserve the index of the rectangle in the savedRectangles object
         updatedSavedRectangles[index] = rect;
 
         setSavedRectangles(updatedSavedRectangles);
@@ -68,7 +67,6 @@ const CreateRectangle = ({
           JSON.stringify(updatedSavedRectangles)
         );
 
-        // Save the disabledRectangles state in local storage
         localStorage.setItem(
           "disabledRectangles",
           JSON.stringify([...disabledRectangles, index])

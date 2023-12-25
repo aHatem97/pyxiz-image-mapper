@@ -86,7 +86,6 @@ function App() {
     setRectangles(updatedRectangles);
     setOpenEditDialog(false);
 
-    // Save the updated rectangles array to localStorage
     localStorage.setItem("savedRectangles", JSON.stringify(updatedRectangles));
   };
 
@@ -94,14 +93,12 @@ function App() {
     setIsEditMode(false);
     const updatedDisabledRectangles = rectangles.map((_, index) => index);
 
-    // Play the video
     if (videoRef && videoRef.current) {
       videoRef.current.play();
     }
 
     setDisabledRectangles(updatedDisabledRectangles);
 
-    // Save the disabled rectangles state in local storage
     localStorage.setItem(
       "disabledRectangles",
       JSON.stringify(updatedDisabledRectangles)
@@ -114,14 +111,12 @@ function App() {
       (index) => !rectangles[index]
     );
 
-    // Pause the video
     if (videoRef && videoRef.current) {
       videoRef.current.pause();
     }
 
     setDisabledRectangles(updatedDisabledRectangles);
 
-    // Save the enabled rectangles state in local storage
     localStorage.setItem(
       "disabledRectangles",
       JSON.stringify(updatedDisabledRectangles)
@@ -129,15 +124,16 @@ function App() {
   };
 
   useEffect(() => {
+    const videoElement = videoRef.current;
+
     const handleTimeUpdate = () => {
-      console.log("handleTimeUpdate: ", videoRef.current.currentTime);
-      setCurrentTime(videoRef.current.currentTime);
+      setCurrentTime(videoElement.currentTime);
     };
 
-    videoRef.current.addEventListener("timeupdate", handleTimeUpdate);
+    videoElement.addEventListener("timeupdate", handleTimeUpdate);
 
     return () => {
-      videoRef.current.removeEventListener("timeupdate", handleTimeUpdate);
+      videoElement.removeEventListener("timeupdate", handleTimeUpdate);
     };
   }, []);
 
@@ -145,12 +141,10 @@ function App() {
     const savedRectanglesJSON = localStorage.getItem("savedRectangles");
     const savedRectangles = JSON.parse(savedRectanglesJSON);
 
-    console.log("savedRectangles: ", savedRectangles);
     const disabledRectanglesJSON = localStorage.getItem("disabledRectangles");
     const disabledRectangles = JSON.parse(disabledRectanglesJSON);
 
     if (savedRectangles) {
-      // Convert savedRectangles from object to array of rectangles
       const updatedRectangles = Object.values(savedRectangles);
       setRectangles(updatedRectangles);
       setSavedRectangles(savedRectangles);
@@ -255,7 +249,7 @@ function App() {
       window.removeEventListener("mouseup", handleMouseUp);
       window.removeEventListener("mousemove", handleMouseMove);
     };
-  }, [resizingIndex, draggingIndex, rotateIndex]);
+  });
 
   const handleDelete = (index) => {
     const updatedRectangles = rectangles.filter((_, i) => i !== index);
