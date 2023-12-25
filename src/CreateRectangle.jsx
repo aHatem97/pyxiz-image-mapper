@@ -18,7 +18,6 @@ const CreateRectangle = ({
   setSavedRectangles,
   setDisabledRectangles,
   disabledRectangles,
-  rectangleType,
   setRectangles,
   handleMouseDown,
   isDisabled,
@@ -28,8 +27,7 @@ const CreateRectangle = ({
   setSelectedIndex,
 }) => {
   const [isVisible, setIsVisible] = useState(true);
-  const [dynamicRectangles, setDynamicRectangles] = useState([]);
-  const [staticRectangles, setStaticRectangles] = useState([]);
+
   const rotationStyle = rectangle.rotate
     ? `rotate(${rectangle.rotate}deg)`
     : "";
@@ -55,12 +53,6 @@ const CreateRectangle = ({
 
         setSavedRectangles(updatedSavedRectangles);
         setDisabledRectangles([...disabledRectangles, index]);
-
-        if (rectangleType === "dynamic") {
-          setDynamicRectangles([...dynamicRectangles, rect]);
-        } else if (rectangleType === "static") {
-          setStaticRectangles([...staticRectangles, rect]);
-        }
 
         localStorage.setItem(
           "savedRectangles",

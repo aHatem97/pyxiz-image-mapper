@@ -140,7 +140,6 @@ function App() {
   useEffect(() => {
     const savedRectanglesJSON = localStorage.getItem("savedRectangles");
     const savedRectangles = JSON.parse(savedRectanglesJSON);
-
     const disabledRectanglesJSON = localStorage.getItem("disabledRectangles");
     const disabledRectangles = JSON.parse(disabledRectanglesJSON);
 
@@ -306,7 +305,6 @@ function App() {
           setSavedRectangles={setSavedRectangles}
           disabledRectangles={disabledRectangles}
           setDisabledRectangles={setDisabledRectangles}
-          rectangleType={rectangleType}
           handleMouseDown={handleMouseDown}
           isDisabled={isDisabled}
           handleEdit={handleEdit}
