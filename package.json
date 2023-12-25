@@ -13,13 +13,7 @@
     "@testing-library/user-event": "^13.5.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-hotspots": "^1.3.2",
-    "react-image-hotspots": "^2.2.1",
-    "react-image-mapper": "^0.0.15",
-    "react-img-mapper": "^1.5.1",
     "react-scripts": "5.0.1",
-    "video.js": "^8.6.1",
-    "web-vitals": "^2.1.4",
     "yarn": "^1.22.21"
   },
   "scripts": {
