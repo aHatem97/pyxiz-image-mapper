@@ -10,7 +10,14 @@ import {
   Typography,
 } from "@mui/material";
 import React, { useState, useEffect, useRef } from "react";
-import { Close, Preview, Construction } from "@mui/icons-material";
+import {
+  Close,
+  Preview,
+  Construction,
+  AccessTime,
+  Pause,
+  PlayArrow,
+} from "@mui/icons-material";
 
 import CreateRectangle from "./CreateRectangle";
 
@@ -33,6 +40,7 @@ function App() {
   const [newRectangle, setNewRectangle] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
 
   const videoRef = useRef(null);
 
@@ -125,23 +133,26 @@ function App() {
     );
   };
 
+  const updateCurrentTime = () => {
+    const videoElement = videoRef.current;
+    setCurrentTime(videoElement.currentTime);
+    console.log("videoElement.currentTime:", videoElement.currentTime);
+    requestAnimationFrame(updateCurrentTime);
+  };
+
   useEffect(() => {
     const videoElement = videoRef.current;
-
-    const handleTimeUpdate = () => {
-      setCurrentTime(videoElement.currentTime);
-    };
-
-    videoElement.addEventListener("timeupdate", handleTimeUpdate);
+    videoElement.addEventListener("timeupdate", updateCurrentTime);
 
     return () => {
-      videoElement.removeEventListener("timeupdate", handleTimeUpdate);
+      videoElement.removeEventListener("timeupdate", updateCurrentTime);
     };
-  }, []);
+  });
 
   useEffect(() => {
     const savedRectanglesJSON = localStorage.getItem("savedRectangles");
     const savedRectangles = JSON.parse(savedRectanglesJSON);
+    console.log("savedRectangles: ", savedRectangles);
     const disabledRectanglesJSON = localStorage.getItem("disabledRectangles");
     const disabledRectangles = JSON.parse(disabledRectanglesJSON);
 
@@ -260,6 +271,26 @@ function App() {
     setOpenConfirmDialog(false);
   };
 
+  const handlePlayPause = () => {
+    const videoElement = videoRef.current;
+    if (videoElement.paused) {
+      videoElement.play();
+    } else {
+      videoElement.pause();
+    }
+  };
+
+  useEffect(() => {
+    const videoElement = videoRef.current;
+    videoElement.addEventListener("play", () => setIsPlaying(true));
+    videoElement.addEventListener("pause", () => setIsPlaying(false));
+
+    return () => {
+      videoElement.removeEventListener("play", () => setIsPlaying(true));
+      videoElement.removeEventListener("pause", () => setIsPlaying(false));
+    };
+  }, []);
+
   return (
     <Box sx={{ maxWidth: "100%" }}>
       <Box
@@ -267,13 +298,33 @@ function App() {
           display: "flex",
           justifyContent: "center",
           paddingTop: "10px",
+          gap: "1em",
         }}
       >
         <Button onClick={handleEnterViewMode}>
-          View Mode <Preview />
+          View Mode <Preview sx={{ marginLeft: "5px" }} />
         </Button>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: "5px",
+          }}
+        >
+          <IconButton onClick={handlePlayPause}>
+            {isPlaying ? (
+              <Pause sx={{ color: "error.main" }} />
+            ) : (
+              <PlayArrow sx={{ color: "success.main" }} />
+            )}
+          </IconButton>
+          <Typography sx={{ width: "100%" }}>
+            {currentTime.toFixed(2)}
+          </Typography>
+          <AccessTime sx={{ color: "primary.main" }} />
+        </Box>
         <Button onClick={handleEnterEditMode}>
-          Edit Mode <Construction />
+          Edit Mode <Construction sx={{ marginLeft: "5px" }} />
         </Button>
       </Box>
       <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>

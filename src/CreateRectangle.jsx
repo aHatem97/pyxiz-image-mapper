@@ -122,6 +122,7 @@ const CreateRectangle = ({
               fontSize: "30px",
               cursor: "move",
               display: isDisabled(index) ? "none" : "flex",
+              zIndex: 10,
             }}
             onMouseDown={(e) => handleMouseDown(e, index, "reposition")}
           >
@@ -140,6 +141,7 @@ const CreateRectangle = ({
             display: isDisabled(index) ? "none" : "flex",
             overflow: "hidden",
             p: 0,
+            zIndex: 10,
           }}
           onMouseDown={(e) => handleMouseDown(e, index, "resize")}
         >
@@ -157,6 +159,7 @@ const CreateRectangle = ({
             display: isDisabled(index) ? "none" : "flex",
             overflow: "hidden",
             p: 0,
+            zIndex: 10,
           }}
           onMouseDown={(e) => handleMouseDown(e, index, "rotate")}
         >
