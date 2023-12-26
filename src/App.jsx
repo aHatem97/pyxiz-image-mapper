@@ -39,6 +39,7 @@ function App() {
   const handleClick = (e) => {
     if (resizingIndex === null && draggingIndex === null) {
       setOpenTypeDialog(true);
+      videoRef.current.pause();
       setNewRectangle({
         x: e.clientX - 100,
         y: e.clientY - 50,
@@ -71,6 +72,7 @@ function App() {
     setOpenEditDialog(false);
     setOpenTypeDialog(false);
     setOpenConfirmDialog(false);
+    videoRef.current.play();
   };
 
   const handleSaveUrl = (index) => {
@@ -182,7 +184,7 @@ function App() {
   };
 
   const handleMouseMove = (e) => {
-    const minimumWidth = 80;
+    const minimumWidth = 60;
     const minimumHeight = 40;
 
     if (resizingIndex !== null) {
