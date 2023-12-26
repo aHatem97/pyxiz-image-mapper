@@ -9,7 +9,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Close,
   Preview,
@@ -133,12 +133,30 @@ function App() {
     );
   };
 
-  const updateCurrentTime = () => {
+  const updateCurrentTime = useCallback(() => {
     const videoElement = videoRef.current;
     setCurrentTime(videoElement.currentTime);
-    console.log("videoElement.currentTime:", videoElement.currentTime);
-    requestAnimationFrame(updateCurrentTime);
-  };
+  }, []);
+
+  useEffect(() => {
+    let animationFrameId;
+    let lastCall = 0;
+    const delay = 100; // Set the throttling delay in milliseconds
+
+    const animate = (timestamp) => {
+      if (timestamp - lastCall >= delay) {
+        updateCurrentTime();
+        lastCall = timestamp;
+      }
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    animationFrameId = requestAnimationFrame(animate);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [updateCurrentTime]);
 
   useEffect(() => {
     const videoElement = videoRef.current;
