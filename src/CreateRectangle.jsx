@@ -102,33 +102,22 @@ const CreateRectangle = ({
             : ""
         }
       >
-        <Box
+        <IconButton
           sx={{
             position: "absolute",
-            left: "2px",
-            top: "2px",
-            width: rectangle.width - 4,
-            height: rectangle.height - 4,
-            background: "transparent",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            color: "white",
+            fontSize: "30px",
+            cursor: "move",
+            display: isDisabled(index) ? "none" : "flex",
+            zIndex: 10,
           }}
+          onMouseDown={(e) => handleMouseDown(e, index, "reposition")}
         >
-          <IconButton
-            sx={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              color: "white",
-              fontSize: "30px",
-              cursor: "move",
-              display: isDisabled(index) ? "none" : "flex",
-              zIndex: 10,
-            }}
-            onMouseDown={(e) => handleMouseDown(e, index, "reposition")}
-          >
-            <OpenWith />
-          </IconButton>
-        </Box>
+          <OpenWith />
+        </IconButton>
         <IconButton
           sx={{
             position: "absolute",

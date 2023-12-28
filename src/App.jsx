@@ -27,7 +27,6 @@ function App() {
   const [draggingIndex, setDraggingIndex] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [rotateIndex, setRotateIndex] = useState(null);
-  const [rotateOffset, setRotateOffset] = useState({ x: 0, y: 0 });
   const [savedRectangles, setSavedRectangles] = useState([]);
   const [disabledRectangles, setDisabledRectangles] = useState([]);
   const [openEditDialog, setOpenEditDialog] = useState(false);
@@ -48,11 +47,33 @@ function App() {
     if (resizingIndex === null && draggingIndex === null) {
       setOpenTypeDialog(true);
       videoRef.current.pause();
+
+      const containerRect = videoRef.current.parentNode.getBoundingClientRect();
+
+      const containerX = containerRect.left;
+      const containerY = containerRect.top;
+
+      const clickX = e.clientX - containerX;
+      const clickY = e.clientY - containerY;
+
+      const parentWidth = containerRect.width;
+      const parentHeight = containerRect.height;
+
+      const widthPercent = 10;
+      const heightPercent = 5;
+
+      const xPercent = Math.round(
+        (clickX / parentWidth) * 100 - widthPercent / 2
+      );
+      const yPercent = Math.round(
+        (clickY / parentHeight) * 100 - heightPercent / 2
+      );
+
       setNewRectangle({
-        x: e.clientX - 100,
-        y: e.clientY - 50,
-        width: 200,
-        height: 100,
+        x: `${xPercent}%`,
+        y: `${yPercent}%`,
+        width: `${widthPercent}%`,
+        height: `${heightPercent}%`,
       });
     }
   };
@@ -196,12 +217,14 @@ function App() {
       setResizingIndex(index);
     } else if (action === "reposition") {
       setDraggingIndex(index);
-      const offsetX = e.clientX - rectangles[index].x;
-      const offsetY = e.clientY - rectangles[index].y;
+      const videoRect = videoRef.current.getBoundingClientRect(); // Get the position and dimensions of the video element
+
+      // Calculate the offsetX relative to the video element
+      const offsetX = ((e.clientX - videoRect.left) / videoRect.width) * 100;
+      const offsetY = ((e.clientY - videoRect.top) / videoRect.height) * 100;
       setDragOffset({ x: offsetX, y: offsetY });
     } else if (action === "rotate") {
       setRotateIndex(index);
-      setRotateOffset({ x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY });
     }
   };
 
@@ -215,58 +238,109 @@ function App() {
   const handleMouseMove = (e) => {
     const minimumWidth = 60;
     const minimumHeight = 40;
+    const videoElement = document.getElementById("video");
+    const videoRect = videoElement.getBoundingClientRect();
 
     if (resizingIndex !== null) {
-      const newWidth = e.clientX - rectangles[resizingIndex].x;
-      const newHeight = e.clientY - rectangles[resizingIndex].y;
+      const containerRect = videoRef.current.parentNode.getBoundingClientRect();
+      const containerX = containerRect.left;
+      const containerY = containerRect.top;
 
-      const videoElement = document.getElementById("video");
-      const videoRect = videoElement.getBoundingClientRect();
-      const maxWidth = videoRect.right - rectangles[resizingIndex].x;
-      const maxHeight = videoRect.bottom - rectangles[resizingIndex].y;
+      const clickX = e.clientX - containerX;
+      const clickY = e.clientY - containerY;
+
+      const parentWidth = containerRect.width;
+      const parentHeight = containerRect.height;
+
+      const startX =
+        (Number(rectangles[resizingIndex].x.replace("%", "")) * parentWidth) /
+        100;
+      const startY =
+        (Number(rectangles[resizingIndex].y.replace("%", "")) * parentHeight) /
+        100;
+
+      const newWidth = clickX - startX;
+      const newHeight = clickY - startY;
+
+      const maxWidth = parentWidth - startX;
+      const maxHeight = parentHeight - startY;
 
       const constrainedWidth = Math.max(newWidth, minimumWidth);
       const constrainedHeight = Math.max(newHeight, minimumHeight);
+
       const finalWidth = Math.min(constrainedWidth, maxWidth);
       const finalHeight = Math.min(constrainedHeight, maxHeight);
 
       const updatedRectangles = rectangles.map((rect, index) =>
         index === resizingIndex
-          ? { ...rect, width: finalWidth, height: finalHeight }
+          ? {
+              ...rect,
+              width: `${(finalWidth * 100) / parentWidth}%`,
+              height: `${(finalHeight * 100) / parentHeight}%`,
+            }
           : rect
       );
 
       setRectangles(updatedRectangles);
     } else if (draggingIndex !== null) {
-      const newX = e.clientX - dragOffset.x;
-      const newY = e.clientY - dragOffset.y;
+      const newX = e.clientX - videoRect.left - dragOffset.x;
+      const newY = e.clientY - videoRect.top - dragOffset.y;
 
-      const videoElement = document.getElementById("video");
-      const videoRect = videoElement.getBoundingClientRect();
+      const constrainedX = Math.max(0, newX);
+      const constrainedY = Math.max(0, newY);
 
-      const constrainedX = Math.max(videoRect.left, newX);
-      const constrainedY = Math.max(videoRect.top, newY);
-      const maxWidth = videoRect.right - rectangles[draggingIndex].width;
-      const maxHeight = videoRect.bottom - rectangles[draggingIndex].height;
+      const maxWidth =
+        videoRect.width -
+        3 -
+        (Number(rectangles[draggingIndex].width.replace("%", "")) *
+          videoRect.width) /
+          100;
+      const maxHeight =
+        videoRect.height -
+        4 -
+        (Number(rectangles[draggingIndex].height.replace("%", "")) *
+          videoRect.height) /
+          100;
 
       const finalX = Math.min(constrainedX, maxWidth);
       const finalY = Math.min(constrainedY, maxHeight);
 
       const updatedRectangles = rectangles.map((rect, index) =>
-        index === draggingIndex ? { ...rect, x: finalX, y: finalY } : rect
+        index === draggingIndex
+          ? {
+              ...rect,
+              x: `${(finalX / videoRef.current.parentNode.offsetWidth) * 100}%`,
+              y: `${
+                (finalY / videoRef.current.parentNode.offsetHeight) * 100
+              }%`,
+            }
+          : rect
       );
 
       setRectangles(updatedRectangles);
     } else if (rotateIndex !== null) {
       const updatedRectangles = rectangles.map((rect, index) => {
         if (index === rotateIndex) {
-          const dx = e.clientX - (rect.x + rect.width / 2) - rotateOffset.x;
-          const dy = e.clientY - (rect.y + rect.height / 2) - rotateOffset.y;
+          const rectCenterX =
+            Number(rect.x.replace("%", "")) +
+            Number(rect.width.replace("%", "")) / 2;
+          const rectCenterY =
+            Number(rect.y.replace("%", "")) +
+            Number(rect.height.replace("%", "")) / 2;
+
+          const mousePosRelX = e.clientX - videoRect.left;
+          const mousePosRelY = e.clientY - videoRect.top;
+
+          // Calculate angle between rectangle's center and mouse position
+          const dx = mousePosRelX - rectCenterX * (videoRect.width / 100);
+          const dy = mousePosRelY - rectCenterY * (videoRect.height / 100);
           const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
           return { ...rect, rotate: angle };
         }
         return rect;
       });
+
       setRectangles(updatedRectangles);
     }
   };
@@ -345,7 +419,15 @@ function App() {
           Edit Mode <Construction sx={{ marginLeft: "5px" }} />
         </Button>
       </Box>
-      <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
+      <Box
+        sx={{
+          width: "fit-content",
+          display: "flex",
+          justifyContent: "center",
+          margin: "0 auto",
+          position: "relative",
+        }}
+      >
         <video
           ref={videoRef}
           id="video"
@@ -362,28 +444,29 @@ function App() {
           src="videos/video1.m4v"
           onClick={handleClick}
         />
+
+        {rectangles.map((rectangle, index) => (
+          <CreateRectangle
+            key={index}
+            rectangle={rectangle}
+            index={index}
+            currentTime={currentTime}
+            rectangles={rectangles}
+            setRectangles={setRectangles}
+            savedRectangles={savedRectangles}
+            setSavedRectangles={setSavedRectangles}
+            disabledRectangles={disabledRectangles}
+            setDisabledRectangles={setDisabledRectangles}
+            handleMouseDown={handleMouseDown}
+            isDisabled={isDisabled}
+            handleEdit={handleEdit}
+            isEditMode={isEditMode}
+            setOpenConfirmDialog={setOpenConfirmDialog}
+            setSelectedIndex={setSelectedIndex}
+          />
+        ))}
       </Box>
 
-      {rectangles.map((rectangle, index) => (
-        <CreateRectangle
-          key={index}
-          rectangle={rectangle}
-          index={index}
-          currentTime={currentTime}
-          rectangles={rectangles}
-          setRectangles={setRectangles}
-          savedRectangles={savedRectangles}
-          setSavedRectangles={setSavedRectangles}
-          disabledRectangles={disabledRectangles}
-          setDisabledRectangles={setDisabledRectangles}
-          handleMouseDown={handleMouseDown}
-          isDisabled={isDisabled}
-          handleEdit={handleEdit}
-          isEditMode={isEditMode}
-          setOpenConfirmDialog={setOpenConfirmDialog}
-          setSelectedIndex={setSelectedIndex}
-        />
-      ))}
       {openEditDialog && (
         <>
           <Box
